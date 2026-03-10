@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PayFire Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --fire1:#ff6b00; --dark:#090909; --muted:rgba(255,255,255,0.38); --green:#00e676; --red:#ff4444; --blue:#60a5fa; --purple:#a78bfa; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--dark); font-family:'Outfit',sans-serif; color:#fff; min-height:100vh; display:flex; justify-content:center; }
+  #app { width:100%; max-width:480px; min-height:100vh; }
+  .screen { display:none; flex-direction:column; min-height:100vh; }
+  .screen.active { display:flex; }
+
+  /* ── LOGIN ADMIN ── */
+  #loginScreen {
+    background:radial-gradient(ellipse at 30% 20%,rgba(255,107,0,0.1) 0%,transparent 50%),
+               radial-gradient(ellipse at 80% 80%,rgba(167,139,250,0.07) 0%,transparent 50%),#090909;
+    align-items:center; justify-content:center; padding:32px 24px;
+  }
+  .admin-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(255,68,68,0.1); border:1px solid rgba(255,68,68,0.25); border-radius:20px; padding:6px 14px; font-size:11px; font-weight:700; color:#ff6b6b; letter-spacing:1px; font-family:'JetBrains Mono',monospace; margin-bottom:20px; }
+  .admin-title { font-size:32px; font-weight:900; letter-spacing:-1.5px; margin-bottom:6px; }
+  .admin-sub { color:var(--muted); font-size:13px; margin-bottom:36px; font-family:'JetBrains Mono',monospace; }
+  .login-card { background:rgba(255,255,255,0.028); border:1px solid rgba(255,255,255,0.08); border-radius:20px; padding:28px 24px; width:100%; }
+  .field-label { font-size:11px; font-weight:600; color:var(--muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:6px; font-family:'JetBrains Mono',monospace; }
+  .field-inp { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; color:#fff; font-size:15px; padding:14px 16px; outline:none; font-family:'Outfit',sans-serif; transition:border-color 0.2s; margin-bottom:14px; }
+  .field-inp:focus { border-color:rgba(255,107,0,0.4); }
+  .field-inp::placeholder { color:rgba(255,255,255,0.18); }
+  .err { background:rgba(255,68,68,0.1); border:1px solid rgba(255,68,68,0.2); border-radius:10px; padding:10px 14px; font-size:12px; color:#ff8080; text-align:center; display:none; margin-bottom:14px; }
+  .pbtn { width:100%; padding:14px; border-radius:12px; background:linear-gradient(135deg,#ff6b00,#ff3300); border:none; color:#fff; font-size:15px; font-weight:700; font-family:'Outfit',sans-serif; cursor:pointer; }
+
+  /* ── MAIN ADMIN ── */
+  #adminScreen { background:var(--dark); flex-direction:column; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:48px 20px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .topbar-left { display:flex; align-items:center; gap:10px; }
+  .fire-ico { width:32px; height:32px; }
+  .topbar-title { font-size:20px; font-weight:900; letter-spacing:-0.5px; }
+  .admin-tag { background:rgba(255,68,68,0.12); border:1px solid rgba(255,68,68,0.2); border-radius:6px; padding:2px 8px; font-size:10px; color:#ff6b6b; font-family:'JetBrains Mono',monospace; font-weight:700; }
+  .logout-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); border-radius:9px; color:var(--muted); font-size:12px; padding:6px 12px; cursor:pointer; font-family:'Outfit',sans-serif; }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:0; padding:14px 20px 0; border-bottom:1px solid rgba(255,255,255,0.06); overflow-x:auto; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { background:none; border:none; color:var(--muted); font-size:13px; font-weight:600; font-family:'Outfit',sans-serif; cursor:pointer; padding:8px 14px; border-bottom:2px solid transparent; white-space:nowrap; transition:all 0.2s; }
+  .tab.active { color:#fff; border-bottom-color:var(--fire1); }
+
+  .panel { display:none; padding:20px; flex:1; overflow-y:auto; }
+  .panel.active { display:block; }
+  .panel::-webkit-scrollbar { width:0; }
+
+  /* ── STATS ── */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:20px; }
+  .stat-box { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px; }
+  .stat-val { font-size:24px; font-weight:900; font-family:'JetBrains Mono',monospace; margin-bottom:4px; }
+  .stat-lbl { color:var(--muted); font-size:11px; }
+  .stat-box.fire { border-color:rgba(255,107,0,0.2); background:rgba(255,107,0,0.05); }
+  .stat-box.green { border-color:rgba(0,230,118,0.2); background:rgba(0,230,118,0.04); }
+  .stat-box.blue { border-color:rgba(96,165,250,0.2); background:rgba(96,165,250,0.04); }
+  .stat-box.purple { border-color:rgba(167,139,250,0.2); background:rgba(167,139,250,0.04); }
+
+  /* ── SECTION ── */
+  .sec-title { font-size:13px; font-weight:700; color:var(--muted); letter-spacing:1px; text-transform:uppercase; font-family:'JetBrains Mono',monospace; margin-bottom:12px; margin-top:4px; }
+  .card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:16px; margin-bottom:10px; }
+  .card-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .card-row:last-child { margin-bottom:0; }
+  .card-name { font-size:14px; font-weight:700; }
+  .card-tag { font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .card-bal { font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--fire1); }
+  .card-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; }
+  .abtn { border:none; border-radius:9px; padding:7px 13px; font-size:12px; font-weight:600; font-family:'Outfit',sans-serif; cursor:pointer; transition:all 0.15s; }
+  .abtn-green { background:rgba(0,230,118,0.1); color:#00e676; border:1px solid rgba(0,230,118,0.2); }
+  .abtn-red { background:rgba(255,68,68,0.1); color:#ff4444; border:1px solid rgba(255,68,68,0.2); }
+  .abtn-blue { background:rgba(96,165,250,0.1); color:#60a5fa; border:1px solid rgba(96,165,250,0.2); }
+  .abtn-orange { background:rgba(255,107,0,0.1); color:#ff6b00; border:1px solid rgba(255,107,0,0.2); }
+  .abtn-purple { background:rgba(167,139,250,0.1); color:#a78bfa; border:1px solid rgba(167,139,250,0.2); }
+  .abtn:active { transform:scale(0.96); }
+
+  /* ── TX LIST ── */
+  .tx-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .tx-row:last-child { border-bottom:none; }
+  .tx-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .tx-info { flex:1; min-width:0; }
+  .tx-name { font-size:12px; font-weight:600; }
+  .tx-meta { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .tx-amt { font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; flex-shrink:0; }
+  .tx-del { background:none; border:none; color:rgba(255,68,68,0.4); cursor:pointer; font-size:14px; padding:2px 6px; }
+  .tx-del:hover { color:#ff4444; }
+
+  /* ── MODAL ── */
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:200; align-items:flex-end; justify-content:center; }
+  .modal-bg.open { display:flex; }
+  .modal { background:#111; border-radius:24px 24px 0 0; padding:28px 24px 40px; width:100%; max-width:480px; }
+  .modal-title { font-size:17px; font-weight:800; margin-bottom:16px; }
+  .modal-row { display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  .modal-inp { flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#fff; font-size:15px; padding:12px 14px; outline:none; font-family:'Outfit',sans-serif; }
+  .modal-inp:focus { border-color:rgba(255,107,0,0.4); }
+  .modal-close { float:right; background:rgba(255,255,255,0.08); border:none; border-radius:50%; width:32px; height:32px; color:#fff; font-size:18px; cursor:pointer; }
+  .modal-sub { color:var(--muted); font-size:12px; margin-bottom:16px; }
+  .modal-confirm { width:100%; padding:14px; border-radius:12px; background:linear-gradient(135deg,#ff6b00,#ff3300); border:none; color:#fff; font-size:15px; font-weight:700; font-family:'Outfit',sans-serif; cursor:pointer; margin-top:4px; }
+  .modal-confirm.danger { background:linear-gradient(135deg,#ff4444,#cc0000); }
+
+  /* ── BROADCAST ── */
+  .broadcast-area { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; color:#fff; font-size:14px; padding:14px 16px; outline:none; font-family:'Outfit',sans-serif; resize:none; min-height:100px; margin-bottom:12px; }
+  .broadcast-area:focus { border-color:rgba(255,107,0,0.4); }
+
+  /* ── EMPTY ── */
+  .empty { padding:32px; text-align:center; color:var(--muted); font-size:13px; }
+
+  /* ── TOAST ── */
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#1a1a1a; border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:12px 20px; font-size:13px; font-weight:600; z-index:999; display:none; white-space:nowrap; }
+  .toast.show { display:block; animation:fadeInOut 2.2s forwards; }
+  @keyframes fadeInOut { 0%{opacity:0;transform:translateX(-50%) translateY(-8px)} 15%{opacity:1;transform:translateX(-50%) translateY(0)} 75%{opacity:1} 100%{opacity:0} }
+
+  .spin { width:14px; height:14px; border:2px solid rgba(255,255,255,0.12); border-top-color:var(--fire1); border-radius:50%; animation:rot 0.75s linear infinite; display:inline-block; vertical-align:middle; margin-right:6px; }
+  @keyframes rot { to{transform:rotate(360deg)} }
+
+  .danger-zone { background:rgba(255,68,68,0.04); border:1px solid rgba(255,68,68,0.15); border-radius:14px; padding:16px; margin-bottom:10px; }
+  .danger-title { color:#ff6b6b; font-size:12px; font-weight:700; font-family:'JetBrains Mono',monospace; letter-spacing:1px; margin-bottom:12px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- LOGIN -->
+<div id="loginScreen" class="screen active">
+  <div style="text-align:center;">
+    <div class="admin-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      ACCES RESTREINT
+    </div>
+    <div class="admin-title">PayFire Admin</div>
+    <div class="admin-sub">Panneau d'administration</div>
+  </div>
+  <div class="login-card">
+    <div class="field-label">Mot de passe admin</div>
+    <input class="field-inp" id="adminPass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter') doAdminLogin()">
+    <div class="err" id="adminErr"></div>
+    <button class="pbtn" onclick="doAdminLogin()">Acceder au panel</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <svg class="fire-ico" viewBox="0 0 52 52" fill="none">
+        <path d="M26 48C26 48 8 38 8 24C8 14 16 6 26 6C36 6 44 14 44 24C44 38 26 48 26 48Z" fill="url(#af1)"/>
+        <path d="M26 48C26 48 14 40 14 29C14 22 19 16 26 16C33 16 38 22 38 29C38 40 26 48 26 48Z" fill="url(#af2)"/>
+        <circle cx="26" cy="36" r="4.5" fill="white" opacity="0.82"/>
+        <defs>
+          <linearGradient id="af1" x1="26" y1="6" x2="26" y2="48" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ffb300"/><stop offset="100%" stop-color="#ff3d00"/></linearGradient>
+          <linearGradient id="af2" x1="26" y1="16" x2="26" y2="48" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ff6b00"/><stop offset="100%" stop-color="#fff" stop-opacity="0.85"/></linearGradient>
+        </defs>
+      </svg>
+      <div>
+        <div class="topbar-title">PayFire <span class="admin-tag">ADMIN</span></div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="adminLogout()">Deconnexion</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('users')">Utilisateurs</button>
+    <button class="tab" onclick="switchTab('transactions')">Transactions</button>
+    <button class="tab" onclick="switchTab('outils')">Outils</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="panelDashboard" class="panel active">
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="sec-title">Derniers comptes crees</div>
+    <div id="recentUsers"></div>
+    <div class="sec-title" style="margin-top:16px;">Dernieres transactions</div>
+    <div id="recentTx" class="card"></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="panelUsers" class="panel">
+    <div style="display:flex;gap:10px;margin-bottom:16px;">
+      <input class="modal-inp" id="userSearch" placeholder="Rechercher un utilisateur..." oninput="renderUsers()" style="flex:1;">
+    </div>
+    <div id="usersList"></div>
+  </div>
+
+  <!-- TRANSACTIONS -->
+  <div id="panelTransactions" class="panel">
+    <div class="sec-title">Toutes les transactions</div>
+    <div id="allTxList"></div>
+  </div>
+
+  <!-- OUTILS -->
+  <div id="panelOutils" class="panel">
+    <div class="sec-title">Diffusion</div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px;">Notifier tous les utilisateurs</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Ajoute une notification dans leur historique</div>
+      <textarea class="broadcast-area" id="broadcastMsg" placeholder="Votre message a diffuser..."></textarea>
+      <button class="abtn abtn-orange" style="width:100%;padding:12px;font-size:13px;" onclick="doBroadcast()">Diffuser a tous</button>
+    </div>
+
+    <div class="sec-title" style="margin-top:16px;">Creer un compte admin fictif</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Ajoute un utilisateur de test avec solde</div>
+      <div class="modal-row">
+        <input class="modal-inp" id="fakeUser" placeholder="Pseudo">
+        <input class="modal-inp" id="fakeBal" placeholder="Solde EUR" type="number" style="width:110px;flex:none;">
+      </div>
+      <button class="abtn abtn-blue" style="width:100%;padding:12px;font-size:13px;" onclick="createFakeUser()">Creer</button>
+    </div>
+
+    <div class="sec-title" style="margin-top:16px;">Zone dangereuse</div>
+    <div class="danger-zone">
+      <div class="danger-title">ATTENTION — ACTIONS IRREVERSIBLES</div>
+      <div class="card-actions">
+        <button class="abtn abtn-red" onclick="confirmAction('resetAllBalances','Remettre tous les soldes a 0 ?')">Reset tous les soldes</button>
+        <button class="abtn abtn-red" onclick="confirmAction('deleteAllTx','Supprimer TOUTES les transactions ?')">Vider transactions</button>
+        <button class="abtn abtn-red" onclick="confirmAction('deleteAllUsers','Supprimer TOUS les comptes ?')">Supprimer tous les comptes</button>
+        <button class="abtn abtn-red" onclick="confirmAction('nukeEverything','EFFACER TOUT PayFire ?')">NUKE TOTAL</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT USER -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editModal')">×</button>
+    <div class="modal-title" id="editModalTitle">Modifier l'utilisateur</div>
+    <div class="modal-sub" id="editModalSub"></div>
+    <div id="editModalContent"></div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM -->
+<div class="modal-bg" id="confirmModal">
+  <div class="modal">
+    <div class="modal-title" id="confirmTitle">Confirmer</div>
+    <div class="modal-sub" id="confirmSub"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="modal-confirm" style="background:rgba(255,255,255,0.07);color:#fff;" onclick="closeModal('confirmModal')">Annuler</button>
+      <button class="modal-confirm danger" id="confirmOkBtn">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────
+var ADMIN_PASS = "KSNDBSK0"; // Change ce mot de passe !
+
+// ── Helpers ─────────────────────────────────────────────────────────
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+function getUsers(){ return lsGet("pf_users") || {}; }
+function saveUsers(u){ lsSet("pf_users",u); }
+function fmt(n){ return (n||0).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" EUR"; }
+function toast(msg, color){ var t=document.getElementById("toast"); t.textContent=msg; t.style.color=color||"#00e676"; t.className="toast"; void t.offsetWidth; t.className="toast show"; }
+
+// ── Admin login ──────────────────────────────────────────────────────
+function doAdminLogin(){
+  var p = document.getElementById("adminPass").value;
+  if(p === ADMIN_PASS){
+    lsSet("pf_admin_auth","1");
+    showScreen("adminScreen");
+    renderAll();
+  } else {
+    var e=document.getElementById("adminErr"); e.textContent="Mot de passe incorrect."; e.style.display="block";
+  }
+}
+function adminLogout(){ lsSet("pf_admin_auth","0"); showScreen("loginScreen"); }
+
+// ── Screen ───────────────────────────────────────────────────────────
+function showScreen(id){ document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); }); document.getElementById(id).classList.add("active"); }
+
+// ── Boot ─────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", function(){
+  if(lsGet("pf_admin_auth")==="1"){ showScreen("adminScreen"); renderAll(); }
+  else showScreen("loginScreen");
+});
+
+// ── Tabs ─────────────────────────────────────────────────────────────
+function switchTab(id){
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.remove("active"); });
+  document.querySelectorAll(".panel").forEach(function(p){ p.classList.remove("active"); });
+  event.target.classList.add("active");
+  document.getElementById("panel"+id.charAt(0).toUpperCase()+id.slice(1)).classList.add("active");
+  if(id==="users") renderUsers();
+  if(id==="transactions") renderAllTx();
+  if(id==="dashboard") renderDashboard();
+}
+
+// ── Render all ────────────────────────────────────────────────────────
+function renderAll(){ renderDashboard(); }
+
+function renderDashboard(){
+  var users = getUsers();
+  var uList = Object.entries(users);
+  var totalBal = uList.reduce(function(a,[,u]){ return a+(u.balance||0); },0);
+  var totalTx  = uList.reduce(function(a,[,u]){ return a+(u.history?u.history.length:0); },0);
+  var allTx = [];
+  uList.forEach(function([uid,u]){ if(u.history) u.history.forEach(function(t){ allTx.push({...t,_uid:uid,_user:u.name}); }); });
+  allTx.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+
+  document.getElementById("statsGrid").innerHTML =
+    stat(uList.length,"Utilisateurs","fire","#ff6b00") +
+    stat(fmt(totalBal),"Argent en circulation","green","#00e676") +
+    stat(totalTx,"Transactions totales","blue","#60a5fa") +
+    stat(uList.filter(function([,u]){ return (u.balance||0)>0; }).length,"Comptes actifs","purple","#a78bfa");
+
+  // Recent users
+  var recent = [...uList].sort(function(a,b){ return (b[1].createdAt||0)-(a[1].createdAt||0); }).slice(0,3);
+  document.getElementById("recentUsers").innerHTML = recent.length ? recent.map(function([uid,u]){
+    return '<div class="card"><div class="card-row"><div><div class="card-name">'+u.name+'</div><div class="card-tag">@'+u.nameKey+'</div></div><div class="card-bal">'+fmt(u.balance)+'</div></div></div>';
+  }).join("") : '<div class="empty">Aucun utilisateur</div>';
+
+  // Recent tx
+  var rTx = allTx.slice(0,5);
+  document.getElementById("recentTx").innerHTML = rTx.length ? rTx.map(function(t){
+    var p=t.type==="received";
+    return '<div class="tx-row"><div class="tx-dot" style="background:'+(p?"#00e676":"#ff4444")+'"></div><div class="tx-info"><div class="tx-name">'+t._user+' → '+t.name+'</div><div class="tx-meta">'+t.ref+' · '+t.date+' '+t.time+'</div></div><div class="tx-amt" style="color:'+(p?"#00e676":"#ff4444")+'">'+(p?"+":"-")+fmt(t.amount)+'</div></div>';
+  }).join("") : '<div class="empty">Aucune transaction</div>';
+}
+
+function stat(val,lbl,type,color){
+  return '<div class="stat-box '+type+'"><div class="stat-val" style="color:'+color+'">'+val+'</div><div class="stat-lbl">'+lbl+'</div></div>';
+}
+
+// ── Users ────────────────────────────────────────────────────────────
+function renderUsers(){
+  var users = getUsers();
+  var q = (document.getElementById("userSearch")||{value:""}).value.toLowerCase();
+  var list = Object.entries(users).filter(function([uid,u]){
+    return !q || u.name.toLowerCase().includes(q) || u.nameKey.includes(q);
+  });
+  if(!list.length){ document.getElementById("usersList").innerHTML='<div class="empty">Aucun utilisateur</div>'; return; }
+  document.getElementById("usersList").innerHTML = list.map(function([uid,u]){
+    var txCount = u.history ? u.history.length : 0;
+    return '<div class="card" id="ucard_'+uid+'">'+
+      '<div class="card-row"><div><div class="card-name">'+u.name+'</div><div class="card-tag">@'+u.nameKey+' · '+txCount+' tx</div></div><div class="card-bal">'+fmt(u.balance)+'</div></div>'+
+      '<div class="card-actions">'+
+        '<button class="abtn abtn-green" onclick="openAddBalance(\''+uid+'\',\''+u.name+'\')">+ Crediter</button>'+
+        '<button class="abtn abtn-red" onclick="openDebitBalance(\''+uid+'\',\''+u.name+'\')">- Debiter</button>'+
+        '<button class="abtn abtn-orange" onclick="openSetBalance(\''+uid+'\',\''+u.name+'\')">= Definir</button>'+
+        '<button class="abtn abtn-blue" onclick="openEditName(\''+uid+'\',\''+u.name+'\')">Renommer</button>'+
+        '<button class="abtn abtn-purple" onclick="openResetPass(\''+uid+'\',\''+u.name+'\')">MDP</button>'+
+        '<button class="abtn abtn-red" onclick="confirmDeleteUser(\''+uid+'\',\''+u.name+'\')">Supprimer</button>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+}
+
+// ── Balance actions ───────────────────────────────────────────────────
+function openAddBalance(uid, name){
+  openModal("editModal", "Crediter "+name, "Montant a ajouter au solde actuel",
+    '<input class="modal-inp" id="modInp" type="number" placeholder="Montant en EUR" style="width:100%;margin-bottom:14px;">'+
+    '<button class="modal-confirm" onclick="doAddBalance(\''+uid+'\')">Crediter</button>');
+}
+function doAddBalance(uid){
+  var v = parseFloat(document.getElementById("modInp").value);
+  if(!v||v<=0){ alert("Montant invalide"); return; }
+  var users=getUsers(); users[uid].balance=(users[uid].balance||0)+v;
+  var now=new Date();
+  users[uid].history=users[uid].history||[];
+  users[uid].history.push({type:"received",name:"Admin PayFire",amount:v,note:"Credit administrateur",date:now.toLocaleDateString("fr-FR"),time:now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),ref:"ADM-"+Math.random().toString(36).toUpperCase().slice(2,8)});
+  saveUsers(users); closeModal("editModal"); renderUsers(); renderDashboard();
+  toast("+ "+fmt(v)+" credites a "+users[uid].name);
+}
+
+function openDebitBalance(uid, name){
+  openModal("editModal", "Debiter "+name, "Montant a retirer du solde",
+    '<input class="modal-inp" id="modInp" type="number" placeholder="Montant en EUR" style="width:100%;margin-bottom:14px;">'+
+    '<button class="modal-confirm danger" onclick="doDebitBalance(\''+uid+'\')">Debiter</button>');
+}
+function doDebitBalance(uid){
+  var v = parseFloat(document.getElementById("modInp").value);
+  var users=getUsers();
+  if(!v||v<=0||v>users[uid].balance){ alert("Montant invalide ou superieur au solde"); return; }
+  users[uid].balance-=v;
+  var now=new Date();
+  users[uid].history=users[uid].history||[];
+  users[uid].history.push({type:"sent",name:"Admin PayFire",amount:v,note:"Debit administrateur",date:now.toLocaleDateString("fr-FR"),time:now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),ref:"ADM-"+Math.random().toString(36).toUpperCase().slice(2,8)});
+  saveUsers(users); closeModal("editModal"); renderUsers(); renderDashboard();
+  toast("- "+fmt(v)+" debites", "#ff4444");
+}
+
+function openSetBalance(uid, name){
+  var users=getUsers();
+  openModal("editModal", "Solde de "+name, "Definir le solde exact",
+    '<input class="modal-inp" id="modInp" type="number" placeholder="Nouveau solde" value="'+(users[uid].balance||0)+'" style="width:100%;margin-bottom:14px;">'+
+    '<button class="modal-confirm" onclick="doSetBalance(\''+uid+'\')">Appliquer</button>');
+}
+function doSetBalance(uid){
+  var v = parseFloat(document.getElementById("modInp").value);
+  if(isNaN(v)||v<0){ alert("Montant invalide"); return; }
+  var users=getUsers(); users[uid].balance=v;
+  saveUsers(users); closeModal("editModal"); renderUsers(); renderDashboard();
+  toast("Solde defini a "+fmt(v));
+}
+
+function openEditName(uid, name){
+  openModal("editModal", "Renommer l'utilisateur", "",
+    '<input class="modal-inp" id="modInp" type="text" value="'+name+'" style="width:100%;margin-bottom:14px;">'+
+    '<button class="modal-confirm" onclick="doEditName(\''+uid+'\')">Renommer</button>');
+}
+function doEditName(uid){
+  var v = document.getElementById("modInp").value.trim();
+  if(!v){ alert("Pseudo invalide"); return; }
+  var users=getUsers();
+  var oldKey=users[uid].nameKey;
+  users[uid].name=v;
+  users[uid].nameKey=v.toLowerCase().replace(/\s+/g,"_");
+  saveUsers(users); closeModal("editModal"); renderUsers();
+  toast("Pseudo change en "+v);
+}
+
+function openResetPass(uid, name){
+  openModal("editModal", "Nouveau mot de passe — "+name, "Le hash sera mis a jour",
+    '<input class="modal-inp" id="modInp" type="password" placeholder="Nouveau mot de passe" style="width:100%;margin-bottom:14px;">'+
+    '<button class="modal-confirm" onclick="doResetPass(\''+uid+'\')">Changer</button>');
+}
+async function doResetPass(uid){
+  var v = document.getElementById("modInp").value;
+  if(!v||v.length<6){ alert("Min. 6 caracteres"); return; }
+  var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v));
+  var hash = Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+  var users=getUsers(); users[uid].passHash=hash;
+  saveUsers(users); closeModal("editModal");
+  toast("Mot de passe reinitialise");
+}
+
+function confirmDeleteUser(uid, name){
+  openConfirm("Supprimer "+name+" ?", "Cette action est irreversible.", function(){
+    var users=getUsers(); delete users[uid];
+    saveUsers(users); renderUsers(); renderDashboard();
+    toast("Compte supprime", "#ff4444");
+  });
+}
+
+// ── Transactions ──────────────────────────────────────────────────────
+function renderAllTx(){
+  var users=getUsers();
+  var allTx=[];
+  Object.entries(users).forEach(function([uid,u]){
+    if(u.history) u.history.forEach(function(t,i){ allTx.push({...t,_uid:uid,_uname:u.name,_idx:i}); });
+  });
+  allTx.sort(function(a,b){ return (b.time||"")>(a.time||"") ? 1 : -1; });
+  var el=document.getElementById("allTxList");
+  if(!allTx.length){ el.innerHTML='<div class="empty">Aucune transaction</div>'; return; }
+  el.innerHTML='<div class="card">'+allTx.slice(0,50).map(function(t){
+    var p=t.type==="received";
+    return '<div class="tx-row">'+
+      '<div class="tx-dot" style="background:'+(p?"#00e676":"#ff4444")+'"></div>'+
+      '<div class="tx-info"><div class="tx-name">'+t._uname+' → '+t.name+'</div><div class="tx-meta">'+(t.ref||"")+(t.date?" · "+t.date:"")+(t.time?" "+t.time:"")+'</div></div>'+
+      '<div class="tx-amt" style="color:'+(p?"#00e676":"#ff4444")+'">'+(p?"+":"-")+fmt(t.amount)+'</div>'+
+      '<button class="tx-del" onclick="deleteTx(\''+t._uid+'\','+t._idx+')" title="Supprimer">×</button>'+
+    '</div>';
+  }).join("")+'</div>';
+}
+
+function deleteTx(uid, idx){
+  var users=getUsers();
+  if(users[uid]&&users[uid].history){ users[uid].history.splice(idx,1); saveUsers(users); renderAllTx(); toast("Transaction supprimee","#ff4444"); }
+}
+
+// ── Outils ────────────────────────────────────────────────────────────
+function doBroadcast(){
+  var msg = document.getElementById("broadcastMsg").value.trim();
+  if(!msg){ alert("Entrez un message"); return; }
+  var users=getUsers();
+  var now=new Date();
+  var date=now.toLocaleDateString("fr-FR",{day:"2-digit",month:"short"});
+  var time=now.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  Object.keys(users).forEach(function(uid){
+    users[uid].history=users[uid].history||[];
+    users[uid].history.push({type:"received",name:"PayFire",amount:0,note:msg,date:date,time:time,ref:"BROADCAST"});
+  });
+  saveUsers(users);
+  document.getElementById("broadcastMsg").value="";
+  toast("Diffuse a "+Object.keys(users).length+" utilisateurs");
+}
+
+async function createFakeUser(){
+  var name=(document.getElementById("fakeUser").value||"").trim();
+  var bal=parseFloat(document.getElementById("fakeBal").value)||0;
+  if(!name){ alert("Entrez un pseudo"); return; }
+  var users=getUsers();
+  var nameKey=name.toLowerCase().replace(/\s+/g,"_");
+  if(Object.values(users).some(function(u){ return u.nameKey===nameKey; })){ alert("Pseudo deja pris"); return; }
+  var uid="pf"+Date.now();
+  var buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("KSNDBSK0"));
+  var hash=Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,"0"); }).join("");
+  users[uid]={name,nameKey,passHash:hash,balance:bal,history:[],createdAt:Date.now()};
+  saveUsers(users);
+  document.getElementById("fakeUser").value="";
+  document.getElementById("fakeBal").value="";
+  toast("Compte '"+name+"' cree (mdp: KSNDBSK0)");
+  renderDashboard();
+}
+
+// ── Danger zone ───────────────────────────────────────────────────────
+var pendingAction = null;
+function confirmAction(action, msg){
+  pendingAction=action;
+  openConfirm(msg,"Cette action est irreversible.",function(){
+    if(pendingAction==="resetAllBalances"){
+      var u=getUsers(); Object.keys(u).forEach(function(uid){ u[uid].balance=0; }); saveUsers(u); toast("Tous les soldes remis a 0","#ff4444");
+    } else if(pendingAction==="deleteAllTx"){
+      var u=getUsers(); Object.keys(u).forEach(function(uid){ u[uid].history=[]; }); saveUsers(u); toast("Toutes les transactions supprimees","#ff4444");
+    } else if(pendingAction==="deleteAllUsers"){
+      saveUsers({}); lsSet("pf_session",null); toast("Tous les comptes supprimes","#ff4444");
+    } else if(pendingAction==="nukeEverything"){
+      localStorage.clear(); toast("TOUT efface","#ff4444"); setTimeout(function(){ location.reload(); },1000);
+    }
+    renderDashboard(); renderUsers();
+  });
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────
+function openModal(id, title, sub, content){
+  document.getElementById("editModalTitle").textContent=title;
+  document.getElementById("editModalSub").textContent=sub;
+  document.getElementById("editModalContent").innerHTML=content;
+  document.getElementById(id).classList.add("open");
+}
+function closeModal(id){ document.getElementById(id).classList.remove("open"); }
+
+var confirmCallback = null;
+function openConfirm(title, sub, cb){
+  document.getElementById("confirmTitle").textContent=title;
+  document.getElementById("confirmSub").textContent=sub;
+  confirmCallback=cb;
+  document.getElementById("confirmOkBtn").onclick=function(){ closeModal("confirmModal"); if(confirmCallback) confirmCallback(); };
+  document.getElementById("confirmModal").classList.add("open");
+}
+</script>
+</body>
+</html>
